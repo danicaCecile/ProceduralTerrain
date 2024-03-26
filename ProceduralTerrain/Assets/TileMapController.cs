@@ -60,12 +60,10 @@ public class TileMapController : MonoBehaviour
         Debug.Log(output);
     }
 
-    //============================================= Start function ====================================================================
-    void Start()
+    //---------------- call to start generation -------------------------------------------------------------------
+    public void StartGeneration()
     {
         exampleTilemap.CompressBounds();
-        //exampleTilemapList = ExampleTilemapListInit(exampleTilemap);
-        //generatedTilemapList = GeneratedTilemapListInit(exampleTilemapList, generatedTilemapStartPosition, generatedTilemapEndPosition);
         GenerateTilemap(exampleTilemap, generatedTilemap, generatedTilemapStartPosition, generatedTilemapEndPosition, defaultTile);
         exampleTilemap.gameObject.SetActive(false);
         generatedTilemap.gameObject.SetActive(true);
