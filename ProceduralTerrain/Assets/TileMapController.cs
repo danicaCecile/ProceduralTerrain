@@ -6,8 +6,11 @@ using System.Linq;
 
 public class TileMapController : MonoBehaviour
 {
-    public Tilemap exampleTilemap; // tile map to be used as an example
-    public Tilemap generatedTilemap; // the tile map that will be generated to
+    public Tilemap exampleTilemapBottomLayer; // tile map to be used as an example
+    public Tilemap generatedTilemapBottomLayer; // the tile map that will be generated to
+
+    public Tilemap exampleTilemapTopLayer;
+    public Tilemap generatedTilemapTopLayer;
 
     // the below variables store the start and end positions of the example and generated tile maps.
     // the start position refers to the lower left tile and the end position refers to the upper right tile.
@@ -63,10 +66,13 @@ public class TileMapController : MonoBehaviour
     //---------------- call to start generation -------------------------------------------------------------------
     public void StartGeneration()
     {
-        exampleTilemap.CompressBounds();
-        GenerateTilemap(exampleTilemap, generatedTilemap, generatedTilemapStartPosition, generatedTilemapEndPosition, defaultTile);
-        exampleTilemap.gameObject.SetActive(false);
-        generatedTilemap.gameObject.SetActive(true);
+        exampleTilemapBottomLayer.CompressBounds();
+        exampleTilemapTopLayer.CompressBounds();
+        GenerateTilemap(generatedTilemapStartPosition, generatedTilemapEndPosition, defaultTile);
+        exampleTilemapBottomLayer.gameObject.SetActive(false);
+        exampleTilemapTopLayer.gameObject.SetActive(false);
+        generatedTilemapBottomLayer.gameObject.SetActive(true);
+        generatedTilemapTopLayer.gameObject.SetActive(true);
     }
 
     //=========================== Get attributes of a tile map ======================================================================
@@ -192,13 +198,15 @@ public class TileMapController : MonoBehaviour
         return westNeighbor;
     }
 
-    private List<Tile> ExampleTilemapListInit(Tilemap tilemap)
+    private Tile GetBottomNeighbor(Tile tile, List<Tile> tilemapListBottom, List<Tile> tilemapListTop)
+    {
+        return tilemapListBottom[tilemapListTop.IndexOf(tile)];
+    }
+
+    private List<Tile> ExampleTilemapListInit(Tilemap tilemap, int width, int height)
     {
         List<Tile> tilemapList = new List<Tile>();
-
-        int width = GetWidth(tilemap);
         exampleTilemapWidth = width;
-        int height = GetHeight(tilemap);
         int tileCount = width * height;
 
         Tile tempTile = null;
@@ -212,7 +220,7 @@ public class TileMapController : MonoBehaviour
             tempTile.type = tilemap.GetTile(new Vector3Int(tempTile.position.x, tempTile.position.y, 0));
             tilemapList.Add(tempTile);
         }
-        //Debug.Log(tilemapList.Count + " tiles added to tile list.");
+        Debug.Log(tilemapList.Count + " tiles added to tile list.");
         return tilemapList;
     }
 
@@ -254,7 +262,10 @@ public class TileMapController : MonoBehaviour
         ScriptableObject.Destroy(rule0);
 
         Rule rule1 = ScriptableObject.CreateInstance<Rule>();
-        int oppositeDirection = (direction + 2) % 4;
+        int oppositeDirection;
+        if(direction <= 3) oppositeDirection = (direction + 2) % 4;
+        else if(direction == 5) oppositeDirection = 4;
+        else oppositeDirection = 5;
         isSuccess = AddRuleToList(rule1, rulesListTemp, neighbor, target, oppositeDirection);
         ScriptableObject.Destroy(rule1);
 
@@ -264,7 +275,7 @@ public class TileMapController : MonoBehaviour
     // rules are stored in a list of rules
     // the rule has three values. two are the target tile and the neighbor tile. 
     // the last is a direction. for any rule, the target tile will be direction from the neighbor tile.
-    // the directions are as follows: 0 - north, 1 - east, 2 - south, 3 - west 
+    // the directions are as follows: 0 - north, 1 - east, 2 - south, 3 - west, 4 - below, 5 - above
     private List<Rule> RulesListInit(List<Tile> tilemapList, int width)
     {
         List<Rule> rulesListTemp = new List<Rule>();
@@ -297,6 +308,21 @@ public class TileMapController : MonoBehaviour
         return rulesListTemp;
     }
 
+    private List<Rule> RulesListVerticalInit(List<Tile> topTilemapList, List<Tile> bottomTilemapList)
+    {
+        int i = 0;
+        List<Rule> rulesListTemp = new List<Rule>();
+
+        foreach(Tile tile in topTilemapList)
+        {
+            Rule rule = ScriptableObject.CreateInstance<Rule>();
+            AddRuleToList(rule, rulesListTemp, tile, bottomTilemapList[i], 5);
+            i++;
+            ScriptableObject.Destroy(rule);
+        }
+        return rulesListTemp;
+    }
+
     private List<Tile> GeneratedTilemapListInit(List<Tile> exampleTilemapList, Vector3Int startTilePos, Vector3Int endTilePos)
     {
         int width = Mathf.Abs(endTilePos.x - startTilePos.x);
@@ -325,7 +351,11 @@ public class TileMapController : MonoBehaviour
     private void PrintTileBaseList(List<TileBase> tileBaseList)
     {
         string output = "Tile bases in list: ";
-        foreach(TileBase tileBase in tileBaseList) output = string.Concat(output, $"{tileBase.ToString()} ");
+        foreach(TileBase tileBase in tileBaseList) 
+        {
+            if(tileBase != null) output = string.Concat(output, $"{tileBase.ToString()} ");
+            else output = string.Concat(output, "null ");
+        }
         Debug.Log(output);
     }
 
@@ -469,31 +499,97 @@ public class TileMapController : MonoBehaviour
         return lowestEntropyTiles;
     }
 
-    private void GenerateTilemap(Tilemap exampleTilemapTemp, Tilemap generatedTilemapTemp, Vector3Int startTilePos, Vector3Int endTilePos, TileBase fillTile)
+    private void PrintTilemapList(List<Tile> tilemapList)
     {
-        List<Tile> exampleTilemapList = ExampleTilemapListInit(exampleTilemapTemp);
-        exampleTilemapListGlobal = exampleTilemapList;
-        List<Tile> generatedTilemapList = GeneratedTilemapListInit(exampleTilemapList, startTilePos, endTilePos);
-        generatedTilemapListGlobal = generatedTilemapList;
+        string output = "Tilemap list: ";
+        foreach(Tile tile in tilemapList) 
+        {
+            if(tile.type != null) output = string.Concat(output, $"{tile.type} ");
+            else output = string.Concat(output, "null ");
+        }
+        Debug.Log(output);
+    }
 
-        FillTilemapFromList(generatedTilemapTemp, generatedTilemapList, fillTile);
-        List<Rule> rulesList = RulesListInit(exampleTilemapList, GetWidth(exampleTilemap));
+    private void ApplyVerticalRules(List<Rule> rulesListVertical, List<Tile> tilemapListBottom, List<Tile> tilemapListTop, Tilemap tilemap)
+    {
+        int index = 0;
+        //PrintRulesList(rulesListVertical);
+        foreach(Tile tile in tilemapListTop)
+        {
+            if(tile.type == null)
+            {
+                index++;
+                continue;
+            }
 
+            foreach(Rule rule in rulesListVertical)
+            {
+                if(rule.target == null) continue;
+                rule.PrintRule();
+                if(tile.type != null) Debug.Log($"target type: {tile.type}");
+                if(tilemapListBottom[index].type != null) Debug.Log($"neighbor type: {tilemapListBottom[index].type}");
+                Debug.Log(tilemapListBottom[index].type + " " + rule.neighbor);
+                if(tile.type == rule.target && tilemapListBottom[index].type == rule.neighbor) 
+                {
+                    Debug.Log("Following the rules");  //if this tile is following the rules do not do anything
+                    break;
+                }
+                else tilemap.SetTile(new Vector3Int(tile.position.x, tile.position.y, 0), null);      
+            }
+            index++;
+        }
+    }
+
+    private void GenerateTilemap(Vector3Int startTilePos, Vector3Int endTilePos, TileBase fillTile)
+    {
+        int exampleTilemapBottomLayerWidth = GetWidth(exampleTilemapBottomLayer);
+        int exampleTilemapBottomLayerHeight = GetHeight(exampleTilemapBottomLayer);
+        List<Tile> exampleTilemapListBottom = ExampleTilemapListInit(exampleTilemapBottomLayer, exampleTilemapBottomLayerWidth, exampleTilemapBottomLayerHeight);
+        List<Tile> exampleTilemapListTop = ExampleTilemapListInit(exampleTilemapTopLayer, exampleTilemapBottomLayerWidth, exampleTilemapBottomLayerHeight);
+
+        List<Tile> generatedTilemapListBottom = GeneratedTilemapListInit(exampleTilemapListBottom, startTilePos, endTilePos);
+        List<Tile> generatedTilemapListTop = GeneratedTilemapListInit(exampleTilemapListTop, startTilePos, endTilePos);
+
+        FillTilemapFromList(generatedTilemapBottomLayer, generatedTilemapListBottom, fillTile);
+        FillTilemapFromList(generatedTilemapTopLayer, generatedTilemapListTop, fillTile);
+        List<Rule> rulesListBottom = RulesListInit(exampleTilemapListBottom, exampleTilemapBottomLayerWidth);
+        List<Rule> rulesListTop = RulesListInit(exampleTilemapListTop, exampleTilemapBottomLayerWidth);
+        List<Rule> rulesListVertical = RulesListVerticalInit(exampleTilemapListTop, exampleTilemapListBottom);
+        //PrintRulesList(rulesListVertical);
+        //PrintTilemapList(exampleTilemapListTop);
         //PrintRulesList(rulesList);
         
-        int randomIndex = rand.Next(0, generatedTilemapList.Count);
-        CollapseTile(generatedTilemapList, randomIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemap, rulesList);
+        //bottom layer
+        int randomIndex = rand.Next(0, generatedTilemapListBottom.Count);
+        CollapseTile(generatedTilemapListBottom, randomIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemapBottomLayer, rulesListBottom);
 
         List<Tile> lowestEntropyTiles;
         int nextIndex;
 
-        while(IsWavefunctionCollapsed(generatedTilemapList) == false)
+        while(IsWavefunctionCollapsed(generatedTilemapListBottom) == false)
         {
-            lowestEntropyTiles = GetLowestEntropyTiles(generatedTilemapList);
+            lowestEntropyTiles = GetLowestEntropyTiles(generatedTilemapListBottom);
             randomIndex = rand.Next(0, lowestEntropyTiles.Count);
-            nextIndex = generatedTilemapList.IndexOf(lowestEntropyTiles[randomIndex]);
-            if(CollapseTile(generatedTilemapList, nextIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemap, rulesList) == false) break;
-            //CollapseTile(generatedTilemapList, nextIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemap, rulesList);
+            nextIndex = generatedTilemapListBottom.IndexOf(lowestEntropyTiles[randomIndex]);
+            if(CollapseTile(generatedTilemapListBottom, nextIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemapBottomLayer, rulesListBottom) == false) break;
         }
+
+
+        //then generate a top layer
+        randomIndex = rand.Next(0, generatedTilemapListTop.Count);
+
+        CollapseTile(generatedTilemapListTop, randomIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemapTopLayer, rulesListTop);
+
+        while(IsWavefunctionCollapsed(generatedTilemapListTop) == false)
+        {
+            lowestEntropyTiles = GetLowestEntropyTiles(generatedTilemapListTop);
+            randomIndex = rand.Next(0, lowestEntropyTiles.Count);
+            nextIndex = generatedTilemapListTop.IndexOf(lowestEntropyTiles[randomIndex]);
+            if(CollapseTile(generatedTilemapListTop, nextIndex, Mathf.Abs(endTilePos.x - startTilePos.x), generatedTilemapTopLayer, rulesListTop) == false) break;
+        }
+
+        // trim tiles that do not meet the rules
+        ApplyVerticalRules(rulesListVertical, generatedTilemapListBottom, generatedTilemapListTop, generatedTilemapTopLayer);
+        //PrintRulesList(rulesListVertical);
     }
 }

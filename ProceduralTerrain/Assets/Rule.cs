@@ -16,18 +16,26 @@ public class Rule : ScriptableObject
         switch(direction)
         {
             case 0:
-                directionString = "north";
+                directionString = "north of";
                 break;
             case 1:
-                directionString = "west";
+                directionString = "west of";
                 break;
             case 2:
-                directionString = "south";
+                directionString = "south of";
                 break;
             case 3:
-                directionString = "east";
+                directionString = "east of";
+                break;
+            case 4:
+                directionString = "below";
+                break;
+            case 5:
+                directionString = "above";
                 break;
         }
-        Debug.Log(target.ToString() + " can be " + directionString + " of " + neighbor.ToString());
+        if(target == null) Debug.Log("Null can be " + directionString + " " + neighbor.ToString());
+        else if(neighbor == null) Debug.Log(target.ToString() + " can be " + directionString + " null");
+        else Debug.Log(target.ToString() + " can be " + directionString + " of " + neighbor.ToString());
     }
 }
