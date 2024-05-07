@@ -8,9 +8,11 @@ public class TileMapController : MonoBehaviour
 {
     public Tilemap exampleTilemapBottomLayer; // tile map to be used as an example
     public Tilemap generatedTilemapBottomLayer; // the tile map that will be generated to
+    public List<Tile> generatedTilemapBottomLayerList;
 
     public Tilemap exampleTilemapTopLayer;
     public Tilemap generatedTilemapTopLayer;
+    public List<Tile> generatedTilemapTopLayerList;
 
     // the below variables store the start and end positions of the example and generated tile maps.
     // the start position refers to the lower left tile and the end position refers to the upper right tile.
@@ -38,6 +40,15 @@ public class TileMapController : MonoBehaviour
         int yOffset = coordinates.y - offset.y;
         int index = generatedTilemapWidth * yOffset + xOffset;
         return generatedTilemapListGlobal[index];
+    }
+
+    public Tile GetTileWithPosition(Vector2Int pos, List<Tile> tileList)
+    {
+        foreach(Tile tile in tileList)
+        {
+            if(tile.position == pos) return tile;
+        }
+        return null;
     }
 
     public void PrintNeighborsAtCoordinates(Vector3Int coordinates)
@@ -201,6 +212,40 @@ public class TileMapController : MonoBehaviour
     private Tile GetBottomNeighbor(Tile tile, List<Tile> tilemapListBottom, List<Tile> tilemapListTop)
     {
         return tilemapListBottom[tilemapListTop.IndexOf(tile)];
+    }
+
+    // order is: north neighbor, east neighbhor, south neighbor, west neighbor, northeast, southeast, southwest, northwest
+    public List<Tile> GetNeighborsFromGeneratedMap(Tile targetTile)
+    {
+        List<Tile> tileneighbors = new List<Tile>();
+        Tile northNeighbor = GetNorthNeighbor(targetTile, generatedTilemapBottomLayerList, generatedTilemapWidth);
+        if(northNeighbor != null) tileneighbors.Add(northNeighbor);
+
+        Tile eastNeighbor = GetEastNeighbor(targetTile, generatedTilemapBottomLayerList, generatedTilemapWidth);
+        if(eastNeighbor != null) tileneighbors.Add(eastNeighbor);
+
+        Tile southNeighbor = GetSouthNeighbor(targetTile, generatedTilemapBottomLayerList, generatedTilemapWidth);
+        tileneighbors.Add(southNeighbor);
+
+        Tile westNeighbor = GetWestNeighbor(targetTile, generatedTilemapBottomLayerList, generatedTilemapWidth);
+        tileneighbors.Add(westNeighbor);
+
+        Tile northEastNeighbor = null;
+        if(northNeighbor != null && eastNeighbor != null) northEastNeighbor = GetEastNeighbor(tileneighbors[0], generatedTilemapBottomLayerList, generatedTilemapWidth);
+        tileneighbors.Add(northEastNeighbor);
+
+        Tile southEastNeighbor = null;
+        if(southNeighbor != null && eastNeighbor != null) southEastNeighbor = GetEastNeighbor(tileneighbors[2], generatedTilemapBottomLayerList, generatedTilemapWidth);
+        if(southEastNeighbor != null) tileneighbors.Add(southEastNeighbor);
+
+        Tile southWestNeighbor = null;
+        if(southNeighbor != null && westNeighbor != null) southWestNeighbor = GetWestNeighbor(tileneighbors[2], generatedTilemapBottomLayerList, generatedTilemapWidth);
+        if(southWestNeighbor != null) tileneighbors.Add(southWestNeighbor);
+
+        Tile northWestNeighbor = null;
+        if(northNeighbor != null && westNeighbor != null) northWestNeighbor = GetWestNeighbor(tileneighbors[0], generatedTilemapBottomLayerList, generatedTilemapWidth);
+        if(northWestNeighbor != null) tileneighbors.Add(northWestNeighbor);
+        return tileneighbors;
     }
 
     private List<Tile> ExampleTilemapListInit(Tilemap tilemap, int width, int height)
@@ -591,5 +636,7 @@ public class TileMapController : MonoBehaviour
         // trim tiles that do not meet the rules
         ApplyVerticalRules(rulesListVertical, generatedTilemapListBottom, generatedTilemapListTop, generatedTilemapTopLayer);
         //PrintRulesList(rulesListVertical);
+        generatedTilemapBottomLayerList = generatedTilemapListBottom;
+        generatedTilemapTopLayerList = generatedTilemapListTop;
     }
 }
