@@ -16,6 +16,7 @@ public class NodeRecord
     public float estimatedTotalCost;
     public Connection connection;
     public List<Connection> outgoingConnections = new List<Connection>();
+    public List<TileBase> tilesToAvoid = new List<TileBase>();
 
     public TileMapController tileMapController;
     
@@ -25,6 +26,7 @@ public class NodeRecord
         foreach(Tile tile in neighbors)
         {
             if(tile == null) continue;
+            if(tilesToAvoid.Contains(tile.type)) continue;
             Connection connectionToAdd = new Connection();
             connectionToAdd.cost = 1f;
             connectionToAdd.fromNode.node = node;
@@ -44,6 +46,8 @@ public class Pathfinder : MonoBehaviour
     public Vector2Int endPosition;
     public TileBase tileBase;
     public Tilemap tilemap;
+
+    public List<TileBase> tilesToAvoid = new List<TileBase>();
 
     private float estimateCostFromTile(Tile targetTile, Tile endTile)
     {
@@ -79,7 +83,7 @@ public class Pathfinder : MonoBehaviour
         Tile startTile = tileMapController.GetTileWithPosition(startPosition, tileMapController.generatedTilemapBottomLayerList);
         Tile endTile = tileMapController.GetTileWithPosition(endPosition, tileMapController.generatedTilemapBottomLayerList);
         List<Tile> path = findPath(startTile, endTile);
-        if(path == null) Debug.Log("path is null");
+        //if(path == null) Debug.Log("path is null");
         foreach(Tile tile in path)
         {
             tilemap.SetTile(new Vector3Int(tile.position.x, tile.position.y, 0), tileBase);
@@ -100,12 +104,13 @@ public class Pathfinder : MonoBehaviour
     {
         NodeRecord startRecord = new NodeRecord();
 
-        if(startTile == null) Debug.Log("start tile null");
+        //if(startTile == null) Debug.Log("start tile null");
         startRecord.node = startTile;
         startRecord.costSoFar = 0f;
         startRecord.estimatedTotalCost = estimateCostFromTile(startTile, endTile);
         startRecord.connection = null;
         startRecord.tileMapController = tileMapController;
+        startRecord.tilesToAvoid = tilesToAvoid;
         startRecord.InitOutgoingConnections();
 
         List<NodeRecord> open = new List<NodeRecord>();
@@ -117,7 +122,7 @@ public class Pathfinder : MonoBehaviour
         while(open.Count > 0)
         {
             current = GetSmallestEstimatedTotalCost(open);
-            printConnections(current);
+            //printConnections(current);
 
             if(current.node.position == endTile.position) 
             {
@@ -134,6 +139,7 @@ public class Pathfinder : MonoBehaviour
 
                 NodeRecord endNodeRecord = null;
                 float endNodeHeuristic = 0f;
+
                 if(FindRecordByNode(closed, endNode) != null)
                 {
                     endNodeRecord = FindRecordByNode(closed, endNode);
@@ -160,6 +166,7 @@ public class Pathfinder : MonoBehaviour
                 endNodeRecord.connection = tempConnection;
                 endNodeRecord.estimatedTotalCost = endNodeCost + endNodeHeuristic;
                 endNodeRecord.tileMapController = tileMapController;
+                endNodeRecord.tilesToAvoid = tilesToAvoid;
                 endNodeRecord.InitOutgoingConnections();
 
                 if(FindRecordByNode(open, endNode) == null) open.Add(endNodeRecord);
@@ -182,8 +189,8 @@ public class Pathfinder : MonoBehaviour
             {
                 path.Add(current.node);
 
-                if(current.connection == null) Debug.Log("current connection is null");
-                else Debug.Log("current connection is not null");
+                //if(current.connection == null) Debug.Log("current connection is null");
+                //else Debug.Log("current connection is not null");
 
                 current = current.connection.fromNode;
             }

@@ -31,6 +31,7 @@ public class TileMapController : MonoBehaviour
     public TileBase defaultTile;
 
     private System.Random rand = new System.Random();
+    public bool isGenerated = false;
 
     //============================== Debug functions ========================================================
     public Tile GetTileAtCoordinates(Vector3Int coordinates)
@@ -84,6 +85,7 @@ public class TileMapController : MonoBehaviour
         exampleTilemapTopLayer.gameObject.SetActive(false);
         generatedTilemapBottomLayer.gameObject.SetActive(true);
         generatedTilemapTopLayer.gameObject.SetActive(true);
+        isGenerated = true;
     }
 
     //=========================== Get attributes of a tile map ======================================================================
